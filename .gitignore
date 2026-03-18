@@ -1,7 +1,5 @@
-# Ignore environment variables
 .env
 venv
 
-# Ignore Python cache files and SQLite database (optional but good practice)
 __pycache__/
 *.db
