@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather App - PM Accelerator</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #f0f4f8; 
+            color: #333;
+            margin: 0; 
+            padding: 40px 20px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            min-height: 100vh;
+        }
+        .container { 
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            max-width: 500px; 
+            width: 100%; 
+            text-align: center; 
+        }
+        h1 { margin-top: 0; color: #1a202c; font-size: 24px;}
+        
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+        input { 
+            padding: 14px; 
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+        }
+        input:focus { outline: none; border-color: #4299e1; }
+        button { 
+            padding: 14px; 
+            background-color: #4299e1;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:hover { background-color: #3182ce; }
+
+        #weatherResult {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #edf2f7;
+            display: none; 
+        }
+        .weather-icon { width: 100px; height: 100px; margin: -10px 0; }
+        .temp { font-size: 42px; font-weight: bold; color: #2d3748; margin: 10px 0; }
+        .desc { font-size: 18px; color: #718096; margin-bottom: 0; }
+        .error-msg { color: #e53e3e; background: #fff5f5; padding: 10px; border-radius: 8px; }
+
+        /* 5-Day Forecast Styling */
+        #forecastResult {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 25px;
+            gap: 10px;
+            display: none; 
+            overflow-x: auto; 
+            padding-top: 20px;
+            border-top: 1px solid #edf2f7;
+        }
+        .forecast-card {
+            background: #f7fafc;
+            padding: 12px 8px;
+            border-radius: 8px;
+            text-align: center;
+            flex: 1;
+            min-width: 70px;
+        }
+        .forecast-date { font-size: 12px; font-weight: bold; color: #4a5568; }
+        .forecast-icon { width: 40px; height: 40px; margin: 5px 0; }
+        .forecast-temp { font-size: 15px; font-weight: bold; color: #2d3748; }
+
+        .footer { 
+            margin-top: auto; 
+            padding-top: 40px;
+            font-size: 0.85em; 
+            color: #a0aec0; 
+            text-align: center;
+            max-width: 600px;
+            line-height: 1.5;
+        }
+        
+        @media (min-width: 600px) { 
+            .input-group { flex-direction: row; }
+            input { flex: 1; margin-bottom: 0; }
+            button { width: 150px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Weather Dashboard</h1>
+        
+        <div class="input-group">
+            <input type="text" id="locationInput" placeholder="Enter City or Zip Code..." onkeypress="handleKeyPress(event)">
+            <button onclick="getWeather()">Search</button>
+        </div>
+        
+        <div id="weatherResult"></div>
+        <div id="forecastResult"></div> 
+    </div>
+
+    <div class="footer">
+        <p><strong>Developed by:</strong> [Your Name Here]</p>
+        <p><strong>About PM Accelerator:</strong> The Product Manager Accelerator is a premier program designed to help professionals transition into and accelerate their careers in product management through mentorship, real-world projects, and technical training.</p>
+    </div>
+
+    <script>
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') getWeather();
+        }
+
+        async function getWeather() {
+            const location = document.getElementById('locationInput').value;
+            const resultDiv = document.getElementById('weatherResult');
+            const forecastDiv = document.getElementById('forecastResult');
+            
+            if (!location) return; 
+
+            resultDiv.style.display = 'block';
+            forecastDiv.style.display = 'none';
+            resultDiv.innerHTML = "<p>Fetching weather data...</p>";
+
+            try {
+                // 1. Fetch Current Weather
+                const response = await fetch(`http://127.0.0.1:8000/weather/?location=${location}`, { method: 'POST' });
+                if (!response.ok) throw new Error("City not found. Please check your spelling.");
+                const data = await response.json();
+                
+                const iconUrl = `https://openweathermap.org/img/wn/${data.icon}@2x.png`;
+                
+                // Displays Weather + Google Maps iframe
+                resultDiv.innerHTML = `
+                    <h3 style="margin: 0; color: #4a5568;">${data.location}</h3>
+                    <img class="weather-icon" src="${iconUrl}" alt="${data.description}">
+                    <div class="temp">${Math.round(data.temperature)}°C</div>
+                    <div class="desc">${data.description}</div>
+                    
+                    <iframe 
+                        width="100%" 
+                        height="200" 
+                        style="border:0; border-radius: 8px; margin-top: 20px;" 
+                        loading="lazy" 
+                        allowfullscreen 
+                        src="https://maps.google.com/maps?q=${encodeURIComponent(data.location)}&t=&z=12&ie=UTF8&iwloc=&output=embed">
+                    </iframe>
+                `;
+
+                // 2. Fetch 5-Day Forecast
+                forecastDiv.style.display = 'flex';
+                forecastDiv.innerHTML = '<p style="font-size: 14px; color: #718096; width: 100%;">Loading 5-day forecast...</p>';
+
+                const forecastResponse = await fetch(`http://127.0.0.1:8000/forecast/?location=${location}`);
+                if (forecastResponse.ok) {
+                    const forecastData = await forecastResponse.json();
+                    let forecastHTML = '';
+                    
+                    forecastData.forecast.forEach(day => {
+                        const dayIconUrl = `https://openweathermap.org/img/wn/${day.icon}.png`;
+                        const shortDate = day.date.substring(5); 
+                        
+                        forecastHTML += `
+                            <div class="forecast-card">
+                                <div class="forecast-date">${shortDate}</div>
+                                <img class="forecast-icon" src="${dayIconUrl}" alt="${day.description}">
+                                <div class="forecast-temp">${Math.round(day.temperature)}°C</div>
+                            </div>
+                        `;
+                    });
+                    forecastDiv.innerHTML = forecastHTML;
+                }
+
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error-msg"><strong>Error:</strong> ${error.message}</div>`;
+                forecastDiv.style.display = 'none'; 
+            }
+        }
+    </script>
+</body>
+</html>
